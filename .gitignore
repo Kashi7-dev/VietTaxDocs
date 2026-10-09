@@ -1,0 +1,8 @@
+node_modules/
+.env
+.env.*
+!.env.example
+*.log
+lint.txt
+.vscode/
+Thumbs.db
