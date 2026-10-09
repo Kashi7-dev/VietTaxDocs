@@ -1,0 +1,377 @@
+openapi: 3.0.3
+info:
+  title: VietTaxDocs
+  description: API cho hệ thống thư viện văn bản luật về thuế
+  version: 1.0.0
+servers:
+  - url: http://localhost:3000/api
+    description: Local development
+
+paths:
+  /documents:
+    get:
+      summary: Lấy danh sách văn bản pháp luật
+      parameters:
+        - name: search
+          in: query
+          description: Từ khóa tìm kiếm tự do
+          schema:
+            type: string
+        - name: tax_type
+          in: query
+          description: Lóc theo mã loại thuế
+          schema:
+            type: string
+        - name: status
+          in: query
+          schema:
+            type: string
+            enum: [con_hieu_luc, het_hieu_luc, sap_hieu_luc]
+        - name: page
+          in: query
+          schema:
+            type: integer
+            default: 1
+      responses:
+        "200":
+          description: Thành công
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/DocumentListResponse"
+  /documents/{id}:
+    get:
+      summary: Lấy chi tiết 1 văn bản
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: Thành công
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/LegalDocument"
+        "404":
+          description: Không tìm thấy
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+  /tax-types:
+    get:
+      summary: Lấy danh sách tất cả loại thuế
+      responses:
+        "200":
+          description: Thành công
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/TaxType"
+  /issuing-agencies:
+    get:
+      summary: Lấy danh sách cơ quan ban hành
+      responses:
+        "200":
+          description: Thành công
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/issuingAgency"
+  /tax-calculations:
+    post:
+      summary: Tính thuế TNCN
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - income
+                - period
+              properties:
+                income:
+                  type: number
+                  example: 25000000
+                deductions:
+                  type: number
+                  example: 11000000
+                period:
+                  type: string
+                  enum: [monthly, yearly]
+      responses:
+        "200":
+          description: Kết quả tính thuế
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/TaxCalculationResult"
+        "400":
+          description: Dữ liệu đầu vào không hợp lệ
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+  /auth/register:
+    post:
+      summary: Đăng ký tài khoản người dùng
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/UserCreateRequest"
+      responses:
+        "201":
+          description: Đăng ký thành công
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/UserResponse"
+        "400":
+          description: Dữ liệu không hợp lệ
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "409":
+          description: Email đã tồn tại
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+  /auth/login:
+    post:
+      summary: Đăng nhập tài khoản người dùng
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/LoginRequest"
+      responses:
+        "200":
+          description: Đăng nhập thành công
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AuthResponse"
+        "401":
+          description: Email hoặc mật khẩu không đúng
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "400":
+          description: Email không đúng định dạng
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+  /notifications:
+    get:
+      summary: Lấy danh sách thông báo
+      security:
+        - bearerAuth: []
+      responses:
+        "200":
+          description: Nhận thông báo thành công
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Notification"
+        "401":
+          description: Sai token
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+components:
+  schemas:
+    LegalDocument:
+      type: object
+      properties:
+        id:
+          type: integer
+          example: 1
+        document_number:
+          type: string
+          example: "123/2025/TT-BTC"
+        title:
+          type: string
+          example: "Thông tư hướng dẫn quyết toán thuế TNCN"
+        document_type:
+          type: string
+          enum: [luat, nghi_dinh, thong_tu, quyet_dinh]
+        issue_date:
+          type: string
+          format: date
+        effective_date:
+          type: string
+          format: date
+        status:
+          type: string
+          enum: [con_hieu_luc, het_hieu_luc, sap_hieu_luc]
+        pdf_url:
+          type: string
+          format: uri
+        source_url:
+          type: string
+          format: uri
+    DocumentListResponse:
+      type: object
+      properties:
+        data:
+          type: array
+          items:
+            $ref: "#/components/schemas/LegalDocument"
+        total:
+          type: integer
+        page:
+          type: integer
+    ErrorResponse:
+      type: object
+      properties:
+        message:
+          type: string
+          example: "Document not found"
+    TaxType:
+      type: object
+      properties:
+        id:
+          type: integer
+        code:
+          type: string
+          example: "TNCN"
+        name:
+          type: string
+          example: "Thuế thu nhập cá nhân"
+        description:
+          type: string
+    issuingAgency:
+      type: object
+      properties:
+        id:
+          type: integer
+        name:
+          type: string
+          example: "Bộ tài chính"
+        website_url:
+          type: string
+          format: uri
+    TaxCalculationResult:
+      type: object
+      properties:
+        taxable_income:
+          type: number
+        total_tax:
+          type: number
+        breakdown:
+          type: array
+          items:
+            type: object
+            properties:
+              bracket_order:
+                type: integer
+              income_in_bracket:
+                type: number
+              tax_rate:
+                type: number
+              tax_amount:
+                type: number
+    UserCreateRequest:
+      type: object
+      required:
+        - email
+        - password
+        - full_name
+      properties:
+        email:
+          type: string
+          format: email
+        password:
+          type: string
+          minLength: 8
+        full_name:
+          type: string
+    UserResponse:
+      type: object
+      required:
+        - id
+        - role
+      properties:
+        id:
+          type: integer
+        full_name:
+          type: string
+        email:
+          type: string
+        role:
+          type: string
+          enum: [user, admin, editor]
+        created_at:
+          type: string
+          format: date-time
+    LoginRequest:
+      type: object
+      required:
+        - email
+        - password
+      properties:
+        email:
+          type: string
+          format: email
+        password:
+          type: string
+    AuthResponse:
+      type: object
+      required:
+        - access_token
+        - token_type
+        - expires_in
+        - user_information
+      properties:
+        access_token:
+          type: string
+        token_type:
+          type: string
+          enum: ["Bearer"]
+        expires_in:
+          type: integer
+          description: Đơn vị tính là giây
+        user_information:
+          $ref: "#/components/schemas/UserResponse"
+    Notification:
+      type: object
+      required:
+        - id
+        - document
+        - is_read
+        - created_at
+      properties:
+        id:
+          type: integer
+        document:
+          $ref: "#/components/schemas/LegalDocument"
+        is_read:
+          type: boolean
+          example: false
+        created_at:
+          type: string
+          format: date-time
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
