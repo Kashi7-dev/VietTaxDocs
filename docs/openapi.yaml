@@ -196,6 +196,30 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/ErrorResponse"
+    /health:
+      get:
+        summary: Kiểm tra tình trạng server và kết nối database
+        operationId: getHealth
+        security: []
+        responses:
+          "200":
+            description: Server và database hoạt động bình thường
+            content:
+              application/json:
+                schema:
+                  type: object
+                  required:
+                    - status
+                  properties:
+                    status:
+                      type: string
+                      enum: [ok]
+          "503":
+            description: Không kết nối được database
+            content:
+              application/json:
+                schema:
+                  $ref: "#/components/schemas/ErrorResponse"
 
 components:
   schemas:
