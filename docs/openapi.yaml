@@ -64,6 +64,8 @@ paths:
   /tax-types:
     get:
       summary: Lấy danh sách tất cả loại thuế
+      operationId: listTaxTypes
+      security: []
       responses:
         "200":
           description: Thành công
@@ -283,6 +285,7 @@ components:
           example: "Thuế thu nhập cá nhân"
         description:
           type: string
+          nullable: true
     issuingAgency:
       type: object
       properties:
