@@ -3,9 +3,9 @@ info:
   title: VietTaxDocs
   description: API cho hệ thống thư viện văn bản luật về thuế
   version: 1.0.0
-servers:
-  - url: http://localhost:3000/api
-    description: Local development
+  servers:
+    - url: /api
+      description: Máy chủ hiện tại
 
 paths:
   /documents:
