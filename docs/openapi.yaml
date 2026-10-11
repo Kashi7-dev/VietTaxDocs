@@ -12,6 +12,14 @@ paths:
     get:
       summary: Lấy danh sách văn bản pháp luật
       parameters:
+        - name: page_size
+          in: query
+          description: Số văn bản mỗi trang (mặc định 10, tối đa 50)
+          schema:
+            type: integer
+            minimum: 1
+            maximum: 50
+            default: 10
         - name: search
           in: query
           description: Từ khóa tìm kiếm tự do
@@ -39,6 +47,12 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/DocumentListResponse"
+        "400":
+          description: Tham số truy vấn không hợp lệ
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
   /documents/{id}:
     get:
       summary: Lấy chi tiết 1 văn bản
@@ -54,9 +68,15 @@ paths:
           content:
             application/json:
               schema:
-                $ref: "#/components/schemas/LegalDocument"
+                $ref: "#/components/schemas/LegalDocumentDetail"
         "404":
           description: Không tìm thấy
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "400":
+          description: id không hợp lệ
           content:
             application/json:
               schema:
@@ -78,6 +98,7 @@ paths:
   /issuing-agencies:
     get:
       summary: Lấy danh sách cơ quan ban hành
+      operationId: listIssuingAgencies
       responses:
         "200":
           description: Thành công
@@ -102,13 +123,22 @@ paths:
               properties:
                 income:
                   type: number
+                  minimum: 0
+                  description: Thu nhập tính thuế trong kỳ
                   example: 25000000
                 deductions:
                   type: number
-                  example: 11000000
+                  minimum: 0
+                  default: 0
+                  example: 15500000
                 period:
                   type: string
                   enum: [monthly, yearly]
+                year:
+                  type: integer
+                  minimum: 2009
+                  maximum: 2100
+                  description: Năm tính thuế, dùng để chọn biểu thuế có hiệu lực. Mặc định là năm hiện tại
       responses:
         "200":
           description: Kết quả tính thuế
@@ -246,17 +276,25 @@ components:
         effective_date:
           type: string
           format: date
+          nullable: true
         status:
           type: string
           enum: [con_hieu_luc, het_hieu_luc, sap_hieu_luc]
         pdf_url:
           type: string
           format: uri
+          nullable: true
         source_url:
           type: string
           format: uri
+          nullable: true
     DocumentListResponse:
       type: object
+      required:
+        - data
+        - total
+        - page
+        - page_size
       properties:
         data:
           type: array
@@ -265,6 +303,8 @@ components:
         total:
           type: integer
         page:
+          type: integer
+        page_size:
           type: integer
     ErrorResponse:
       type: object
@@ -299,7 +339,19 @@ components:
           format: uri
     TaxCalculationResult:
       type: object
+      required:
+        - year
+        - period
+        - taxable_income
+        - total_tax
+        - breakdown
+        - legal_basis
       properties:
+        year:
+          type: integer
+          period:
+            type: string
+            enum: [monthly, yearly]
         taxable_income:
           type: number
         total_tax:
@@ -317,6 +369,10 @@ components:
                 type: number
               tax_amount:
                 type: number
+        legal_basis:
+         type: string
+          nullable: true
+           description: Căn cứ pháp lý của biểu thuế được áp dụng
     UserCreateRequest:
       type: object
       required:
@@ -330,6 +386,7 @@ components:
         password:
           type: string
           minLength: 8
+          maxLength: 72
         full_name:
           type: string
     UserResponse:
@@ -337,6 +394,9 @@ components:
       required:
         - id
         - role
+        - full_name
+        - created_at
+        - email
       properties:
         id:
           type: integer
@@ -402,3 +462,44 @@ components:
       type: http
       scheme: bearer
       bearerFormat: JWT
+    LegalDocumentDetail:
+      allOf:
+        - $ref: "#/components/schemas/LegalDocument"
+        - type: object
+          required:
+            - content
+            - source_type
+            - tax_types
+            - created_at
+            - updated_at
+          properties:
+            expiry_date:
+              type: string
+              format: date
+              nullable: true
+            content:
+              type: string
+            source_type:
+              type: string
+              enum: [admin_manual, crawler]
+            issuing_agency:
+              nullable: true
+              allOf:
+                - $ref: "#/components/schemas/issuingAgency"
+            tax_types:
+              type: array
+              items:
+                type: object
+                properties:
+                  id:
+                    type: integer
+                  code:
+                    type: string
+                  name:
+                    type: string
+            created_at:
+              type: string
+              format: date-time
+            updated_at:
+              type: string
+              format: date-time

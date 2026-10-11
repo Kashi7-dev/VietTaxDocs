@@ -1,3 +1,5 @@
+const pg = require("pg");
+pg.types.setTypeParser(1082, (value) => value); // cột DATE trả về chuỗi "YYYY-MM-DD"
 const knex = require("knex");
 const config = require("../../knexfile");
 
