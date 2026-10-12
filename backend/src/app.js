@@ -20,7 +20,24 @@ app.use("/api-docs", swaggerUi.serve, swaggerUi.setup(swaggerDocument));
 
 // Middleware dùng chung cho mọi request.
 app.use(helmet());
-app.use(cors());
+const allowedOrigins = (process.env.FRONTEND_ORIGIN || "")
+  .split(",")
+  .map((origin) => origin.trim())
+  .filter(Boolean);
+
+app.use(
+  cors({
+    origin(origin, callback) {
+      // Request không có header Origin (công cụ dòng lệnh, cùng máy chủ) thì cho qua.
+      if (!origin) return callback(null, true);
+      // Khi chạy local mà chưa đặt biến thì mở để tiện phát triển.
+      if (process.env.NODE_ENV !== "production" && allowedOrigins.length === 0) {
+        return callback(null, true);
+      }
+      return callback(null, allowedOrigins.includes(origin));
+    },
+  }),
+);
 app.use(morgan("dev"));
 app.use(express.json());
 
